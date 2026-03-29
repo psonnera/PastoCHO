@@ -189,21 +189,6 @@ val foodList = listOf(
         )
     ),
     FoodItem(
-        name = "Pesca",
-        course = Course.FRUTTA,
-        carbsPer100g = 10,
-        defaultWeight = 100,
-        modifiers = listOf(
-            FoodModifier(
-                label = "Dimensione",
-                options = listOf(
-                    ModifierOption("Media", -10, appliesTo = ModifierTarget.Weight),
-                    ModifierOption("Grossa", +10, appliesTo = ModifierTarget.Weight)
-                )
-            )
-        )
-    ),
-    FoodItem(
         name = "Mandarino",
         course = Course.FRUTTA,
         carbsPer100g = 13,
