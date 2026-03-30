@@ -50,7 +50,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.psonnera.pastocho.data.foodList
 import com.psonnera.pastocho.domain.calculateAdjustedValues
 import com.psonnera.pastocho.model.Course
 import com.psonnera.pastocho.model.FoodItem
@@ -144,6 +143,7 @@ fun MealPlannerScreen(
             }
         } else {
             FoodDropdown(
+                foods = state.catalog,
                 selectedCourse = state.selectedCourse,
                 selectedFood = state.selectedFood,
                 onFoodSelected = state::selectFood
@@ -470,11 +470,14 @@ fun CourseSelector(
 
 @Composable
 fun FoodDropdown(
+    foods: List<FoodItem>,
     selectedCourse: Course,
     selectedFood: FoodItem?,
     onFoodSelected: (FoodItem) -> Unit,
 ) {
-    val filteredFoods = remember(selectedCourse) { foodList.filter { it.course == selectedCourse } }
+    val filteredFoods = remember(foods, selectedCourse) {
+        foods.filter { it.course == selectedCourse }
+    }
     var expanded by remember { mutableStateOf(false) }
 
     Column {

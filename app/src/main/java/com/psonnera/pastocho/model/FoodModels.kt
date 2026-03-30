@@ -5,7 +5,7 @@ enum class Course(val emoji: String) {
     PASTO("🍝🍕"),
     MERENDA("🥞🍦"),
     FRUTTA("🍐🍑"),
-    ALTRO("🍲❓")
+    ALTRO("🔢❓")
 }
 
 data class FoodItem(
