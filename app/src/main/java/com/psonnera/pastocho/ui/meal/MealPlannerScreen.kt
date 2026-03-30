@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -82,14 +83,24 @@ fun MealPlannerScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val manualWeightError = state.manualWeightErrorMessage()
+                    val manualCarbsError = state.manualCarbsErrorMessage()
+
                     TextField(
                         value = state.weightInput,
                         onValueChange = state::updateManualWeightInput,
                         label = { Text("Peso (g)") },
+                        isError = manualWeightError != null,
+                        supportingText = {
+                            if (manualWeightError != null) {
+                                Text(manualWeightError)
+                            }
+                        },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .weight(1f)
+                            .testTag("manual-weight-input")
                             .padding(end = 8.dp)
                     )
 
@@ -97,9 +108,17 @@ fun MealPlannerScreen(
                         value = state.carbsInput,
                         onValueChange = state::updateManualCarbsInput,
                         label = { Text("CHO %") },
+                        isError = manualCarbsError != null,
+                        supportingText = {
+                            if (manualCarbsError != null) {
+                                Text(manualCarbsError)
+                            }
+                        },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("manual-carbs-input")
                     )
                 }
 
@@ -108,13 +127,17 @@ fun MealPlannerScreen(
                 Text(
                     text = "CHO totale: %.1f".format(totalCHO),
                     fontSize = 16.sp,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .testTag("manual-cho-preview")
                 )
 
                 Button(
                     onClick = state::addManualMealItem,
-                    enabled = state.weightValue > 0 && state.carbsValue > 0,
-                    modifier = Modifier.fillMaxWidth()
+                    enabled = state.isManualInputValid,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("manual-add-button")
                 ) {
                     Text("Aggiungi al pasto")
                 }
@@ -133,22 +156,13 @@ fun MealPlannerScreen(
                     selectedOptions
                 )
 
-                val effectiveWeight: Double
-                val totalCHO: Double
-
-                if (food.isPieceBased) {
-                    val weightPerPiece =
-                        state.pieceWeightInput.toDoubleOrNull() ?: food.defaultWeight.toDouble()
-                    val carbsPer100g =
-                        state.pieceCarbsPer100gInput.toDoubleOrNull() ?: food.carbsPer100g.toDouble()
-
-                    effectiveWeight = state.pieceCount * weightPerPiece
-                    totalCHO = effectiveWeight * carbsPer100g / 100.0
-                } else {
-                    val weight = state.weightInput.toDoubleOrNull() ?: adjustedWeight
-                    effectiveWeight = weight
-                    totalCHO = effectiveWeight * adjustedCarbsPerGram / 100.0
-                }
+                val computedValues = state.computeSelectedValues(
+                    food = food,
+                    adjustedWeight = adjustedWeight,
+                    adjustedCarbsPer100g = adjustedCarbsPerGram
+                )
+                val effectiveWeight = computedValues?.first ?: 0.0
+                val totalCHO = computedValues?.second ?: 0.0
 
                 ModifierSelector(
                     food = food,
@@ -210,14 +224,24 @@ fun MealPlannerScreen(
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val pieceWeightError = state.pieceWeightErrorMessage()
+                                val pieceCarbsError = state.pieceCarbsErrorMessage()
+
                                 TextField(
                                     value = state.pieceWeightInput,
                                     onValueChange = state::updatePieceWeightInput,
                                     label = { Text("Peso (g)") },
+                                    isError = pieceWeightError != null,
+                                    supportingText = {
+                                        if (pieceWeightError != null) {
+                                            Text(pieceWeightError)
+                                        }
+                                    },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier
                                         .weight(1f)
+                                        .testTag("piece-weight-input")
                                         .padding(end = 8.dp)
                                 )
 
@@ -225,8 +249,16 @@ fun MealPlannerScreen(
                                     value = state.pieceCarbsPer100gInput,
                                     onValueChange = state::updatePieceCarbsInput,
                                     label = { Text("CHO %") },
+                                    isError = pieceCarbsError != null,
+                                    supportingText = {
+                                        if (pieceCarbsError != null) {
+                                            Text(pieceCarbsError)
+                                        }
+                                    },
                                     singleLine = true,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("piece-carbs-input")
                                 )
                             }
                         }
@@ -234,8 +266,10 @@ fun MealPlannerScreen(
 
                     Button(
                         onClick = { state.addSelectedFoodItem(effectiveWeight, totalCHO) },
+                        enabled = computedValues != null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag("selected-food-add-button")
                             .padding(top = 12.dp)
                     ) {
                         Text("Aggiungi al pasto", fontSize = 18.sp)
@@ -253,14 +287,23 @@ fun MealPlannerScreen(
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            val selectedWeightError = state.selectedWeightErrorMessage(adjustedWeight)
+
                             TextField(
                                 value = state.weightInput,
                                 onValueChange = state::updateSelectedWeightInput,
                                 label = { Text("Peso (g)", fontSize = 18.sp) },
                                 textStyle = LocalTextStyle.current.copy(fontSize = 24.sp),
+                                isError = selectedWeightError != null,
+                                supportingText = {
+                                    if (selectedWeightError != null) {
+                                        Text(selectedWeightError)
+                                    }
+                                },
                                 singleLine = true,
                                 modifier = Modifier
                                     .weight(1f)
+                                    .testTag("selected-weight-input")
                                     .padding(end = 8.dp)
                             )
 
@@ -302,7 +345,11 @@ fun MealPlannerScreen(
                             }
 
                             Text(
-                                text = "${totalCHO.roundToInt()} CHO",
+                                text = if (computedValues != null) {
+                                    "${totalCHO.roundToInt()} CHO"
+                                } else {
+                                    "-- CHO"
+                                },
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier
@@ -315,8 +362,10 @@ fun MealPlannerScreen(
 
                     Button(
                         onClick = { state.addSelectedFoodItem(effectiveWeight, totalCHO) },
+                        enabled = computedValues != null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag("selected-food-add-button")
                             .padding(top = 12.dp)
                     ) {
                         Text("Aggiungi al pasto", fontSize = 18.sp)
@@ -331,7 +380,8 @@ fun MealPlannerScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 240.dp),
+                .heightIn(max = 240.dp)
+                .testTag("meal-items-list"),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(state.mealItems) { item ->
@@ -374,7 +424,8 @@ fun MealPlannerScreen(
                 text = "Totale CHO: %d".format(totalMealCHO.roundToInt()),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32)
+                color = Color(0xFF2E7D32),
+                modifier = Modifier.testTag("meal-total")
             )
         }
     }
@@ -397,6 +448,7 @@ fun CourseSelector(
             Column(
                 modifier = Modifier
                     .width(64.dp)
+                    .testTag("course-${course.name.lowercase()}")
                     .clickable { onCourseSelected(course) }
                     .background(
                         color = if (course == selectedCourse) Color(0xFF1976D2) else Color.Transparent,
@@ -429,6 +481,7 @@ fun FoodDropdown(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("food-dropdown-trigger")
                 .clickable { expanded = true }
                 .border(1.dp, Color.Gray)
                 .padding(12.dp)

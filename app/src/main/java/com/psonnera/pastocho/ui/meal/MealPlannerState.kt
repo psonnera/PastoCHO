@@ -12,6 +12,11 @@ import com.psonnera.pastocho.model.ModifierOption
 
 @Stable
 class MealPlannerState {
+    companion object {
+        private const val MAX_WEIGHT_GRAMS = 2000.0
+        private const val MAX_CARBS_PERCENT = 100.0
+    }
+
     var selectedCourse by mutableStateOf(Course.COLAZIONE)
         private set
 
@@ -50,6 +55,13 @@ class MealPlannerState {
     val totalMealCho: Double
         get() = mealItems.sumOf { it.totalCHO }
 
+    val isManualInputValid: Boolean
+        get() =
+            manualWeightErrorMessage() == null &&
+                manualCarbsErrorMessage() == null &&
+                weightValue > 0 &&
+                carbsValue > 0
+
     fun selectCourse(course: Course) {
         selectedCourse = course
         selectedFood = null
@@ -79,15 +91,19 @@ class MealPlannerState {
 
     fun updateManualWeightInput(input: String) {
         weightInput = input
-        parseLocalizedDouble(input)?.let { weightValue = it }
+        val parsed = parseLocalizedDouble(input)
+        weightValue = parsed?.takeIf(::isValidWeightValue) ?: 0.0
     }
 
     fun updateManualCarbsInput(input: String) {
         carbsInput = input
-        parseLocalizedDouble(input)?.let { carbsValue = it }
+        val parsed = parseLocalizedDouble(input)
+        carbsValue = parsed?.takeIf(::isValidCarbsValue) ?: 0.0
     }
 
     fun addManualMealItem() {
+        if (!isManualInputValid) return
+
         mealItems.add(
             MealItem(
                 name = "Manuale",
@@ -112,7 +128,7 @@ class MealPlannerState {
 
     fun decrementSelectedWeight(step: Int = 5) {
         val current = parseLocalizedDouble(weightInput) ?: 0.0
-        weightInput = "%.0f".format(current - step)
+        weightInput = "%.0f".format((current - step).coerceAtLeast(0.0))
     }
 
     fun decrementPieceCount() {
@@ -134,6 +150,8 @@ class MealPlannerState {
 
     fun addSelectedFoodItem(weight: Double, totalCho: Double) {
         val food = selectedFood ?: return
+        if (!isValidWeightValue(weight) || totalCho < 0) return
+
         mealItems.add(
             MealItem(
                 name = food.name,
@@ -148,7 +166,120 @@ class MealPlannerState {
         mealItems.remove(item)
     }
 
+    fun computeSelectedValues(
+        food: FoodItem,
+        adjustedWeight: Double,
+        adjustedCarbsPer100g: Double
+    ): Pair<Double, Double>? {
+        if (food.isPieceBased) {
+            val weightPerPiece = parseAndValidateWeight(pieceWeightInput) ?: return null
+            val carbsPer100g = parseAndValidateCarbs(pieceCarbsPer100gInput) ?: return null
+            val effectiveWeight = pieceCount * weightPerPiece
+            val totalCho = effectiveWeight * carbsPer100g / 100.0
+            return effectiveWeight to totalCho
+        }
+
+        val effectiveWeight = resolveWeightOrDefault(weightInput, adjustedWeight) ?: return null
+        val totalCho = effectiveWeight * adjustedCarbsPer100g / 100.0
+        return effectiveWeight to totalCho
+    }
+
+    fun manualWeightErrorMessage(): String? {
+        return validationMessage(
+            input = weightInput,
+            minExclusive = 0.0,
+            maxInclusive = MAX_WEIGHT_GRAMS,
+            fieldLabel = "Peso"
+        )
+    }
+
+    fun manualCarbsErrorMessage(): String? {
+        return validationMessage(
+            input = carbsInput,
+            minExclusive = 0.0,
+            maxInclusive = MAX_CARBS_PERCENT,
+            fieldLabel = "CHO %"
+        )
+    }
+
+    fun selectedWeightErrorMessage(adjustedWeight: Double): String? {
+        if (weightInput.isBlank()) {
+            return if (isValidWeightValue(adjustedWeight)) null else "Peso non valido"
+        }
+
+        return validationMessage(
+            input = weightInput,
+            minExclusive = 0.0,
+            maxInclusive = MAX_WEIGHT_GRAMS,
+            fieldLabel = "Peso"
+        )
+    }
+
+    fun pieceWeightErrorMessage(): String? {
+        return validationMessage(
+            input = pieceWeightInput,
+            minExclusive = 0.0,
+            maxInclusive = MAX_WEIGHT_GRAMS,
+            fieldLabel = "Peso"
+        )
+    }
+
+    fun pieceCarbsErrorMessage(): String? {
+        return validationMessage(
+            input = pieceCarbsPer100gInput,
+            minExclusive = 0.0,
+            maxInclusive = MAX_CARBS_PERCENT,
+            fieldLabel = "CHO %"
+        )
+    }
+
     private fun parseLocalizedDouble(input: String): Double? {
         return input.replace(",", ".").toDoubleOrNull()
+    }
+
+    private fun parseAndValidateWeight(input: String): Double? {
+        val parsed = parseLocalizedDouble(input) ?: return null
+        return parsed.takeIf(::isValidWeightValue)
+    }
+
+    private fun parseAndValidateCarbs(input: String): Double? {
+        val parsed = parseLocalizedDouble(input) ?: return null
+        return parsed.takeIf(::isValidCarbsValue)
+    }
+
+    private fun resolveWeightOrDefault(input: String, defaultWeight: Double): Double? {
+        if (input.isBlank()) {
+            return defaultWeight.takeIf(::isValidWeightValue)
+        }
+        return parseAndValidateWeight(input)
+    }
+
+    private fun isValidWeightValue(value: Double): Boolean {
+        return value > 0.0 && value <= MAX_WEIGHT_GRAMS
+    }
+
+    private fun isValidCarbsValue(value: Double): Boolean {
+        return value > 0.0 && value <= MAX_CARBS_PERCENT
+    }
+
+    private fun validationMessage(
+        input: String,
+        minExclusive: Double,
+        maxInclusive: Double,
+        fieldLabel: String
+    ): String? {
+        if (input.isBlank()) {
+            return "$fieldLabel richiesto"
+        }
+
+        val parsed = parseLocalizedDouble(input) ?: return "$fieldLabel non numerico"
+        if (parsed <= minExclusive) {
+            return "$fieldLabel deve essere > 0"
+        }
+        if (parsed > maxInclusive) {
+            return "$fieldLabel deve essere <= ${maxInclusive.toInt()}"
+        }
+
+        return null
     }
 }
