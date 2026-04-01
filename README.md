@@ -44,7 +44,7 @@ Carbs taken from FatSecret and other online resources (NO LLM)
 
 Header course selection
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot1.png)
+![](./screenshots/Screenshot1.png)
 
 Drop down menu for food selection
 
