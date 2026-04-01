@@ -48,11 +48,11 @@ Header course selection
 
 Drop down menu for food selection
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot2.png)
+![](./screenshots/Screenshot2.png)
 
 Weight calculation for raw food
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot3.png)
+![](./screenshots/Screenshot3.png)
 
 Customizations for cooked food: by additional sauce
 
@@ -66,17 +66,17 @@ Gnocchi cooked: 100%, -10%, -20%
 
 Crepes Nutella: -40% (no Nutella), 100%, +20%
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot4.png)
+![](./screenshots/Screenshot4.png)
 
 By serving size
 
 Gelato da banco: -20%, 100%, +25% 
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot5.png)
+![](./screenshots/Screenshot5.png)
 
 Itemized
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot6.png)
+![](./screenshots/Screenshot6.png)
 
 By item size
 
@@ -90,13 +90,13 @@ Mandarino: -15%, 100%, +15%
 
 Macedonia du frutta: 100%, +25% if sugared
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot7.png)
+![](./screenshots/Screenshot7.png)
 
 Calculator for products with carbs information
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot8.png)
+![](./screenshots/Screenshot8.png)
 
 Total calculation with deletion icon
 
-![](C:\Data\50-Android\PastoCHO\screenshots\Screenshot9.png)
+![](./screenshots/Screenshot9.png)
 
